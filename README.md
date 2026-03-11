@@ -18,7 +18,7 @@ Simple Window Manager for Windows based on [AlwaysOnTopper by Alexey 'Cluster' A
 
 ## How to use
 
-Make sure that .NET Framework 4.5.2 is installed. Just run **AlwaysOnTopper.exe**. It's recommended to add this app to autorun.
+Make sure that .NET Framework 4.5.2 is installed. Just run **AlwaysOnTopper.exe**. It's recommended to start it on login using Task Scheduler for daily use. For it to take effect in programs with administrator privileges, the application must also be granted administrator privileges.
 
 ## Original Author/contacts
 
