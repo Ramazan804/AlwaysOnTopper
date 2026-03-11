@@ -1,0 +1,20 @@
+# User-specific files
+*.suo
+*.user
+*.userprefs
+
+# Build results and caches
+[Bb]in/
+[Oo]bj/
+.vs/
+*.pdb
+
+# Test Results
+[Tt]est[Rr]esult*/
+
+# .NET Core artifacts
+project.lock.json
+artifacts/
+
+# Other
+publish/
