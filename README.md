@@ -2,6 +2,8 @@
 
 Simple Window Manager for Windows based on [AlwaysOnTopper by Alexey 'Cluster' Avdyukhin](https://github.com/ClusterM/AlwaysOnTopper).
 
+![Screenshot](images/ex0.png)
+
 # Features
 
 * Adds 'Always on top' item to system menu of every window. (Supports " 🪟 + " Shortcut)
