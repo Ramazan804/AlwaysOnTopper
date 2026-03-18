@@ -251,6 +251,19 @@ namespace AlwaysOnTopper
                 return;
             }
 
+            if (existingInfo != null && existingInfo.MenuInserted && existingInfo.SysMenu != sysMenu)
+            {
+                try
+                {
+                    SafeRemoveByScanning(existingInfo.SysMenu);
+                }
+                catch { }
+                existingInfo.SysMenu = sysMenu;
+                existingInfo.MenuInserted = false;
+                existingInfo.IndexTop = -1;
+                existingInfo.IndexTrans = -1;
+            }
+
             if (existingInfo != null && existingInfo.MenuInserted && existingInfo.SysMenu == sysMenu)
             {
                 var info = new WINDOWINFO(true);
@@ -278,6 +291,50 @@ namespace AlwaysOnTopper
             int count = GetMenuItemCount(sysMenu);
             if (count < 0) return;
 
+            int foundTop = -1, foundTrans = -1;
+            for (uint i = 0; i < (uint)count; i++)
+            {
+                var scan = new MENUITEMINFO(0x0002 | 0x0040)
+                {
+                    dwTypeData = new string(' ', 256),
+                    cch = 256
+                };
+                if (GetMenuItemInfo(sysMenu, i, true, scan))
+                {
+                    if (scan.wID == MenuId || (scan.dwTypeData != null && scan.dwTypeData.Trim().Equals(MenuItemName, StringComparison.OrdinalIgnoreCase)))
+                        foundTop = (int)i;
+                    if (scan.wID == MenuIdTrans || (scan.dwTypeData != null && scan.dwTypeData.Trim().Equals(MenuItemNameTrans, StringComparison.OrdinalIgnoreCase)))
+                        foundTrans = (int)i;
+                }
+            }
+
+            if (foundTop >= 0 || foundTrans >= 0)
+            {
+                HookInfo hook = null;
+                lock (hooksLock)
+                {
+                    WinEventDelegate perHookDel = (h, e, hw, o, c, t, tm) => WinEventInvoked(h, e, hw, o, c, t, tm);
+                    var h = SetWinEventHook(0x8013, 0x8013, IntPtr.Zero, perHookDel, 0, 0, 0);
+                    hook = new HookInfo
+                    {
+                        Callback = perHookDel,
+                        TargetHwnd = hwnd,
+                        SysMenu = sysMenu,
+                        IndexTop = foundTop,
+                        IndexTrans = foundTrans,
+                        MenuInserted = true
+                    };
+                    if (h != IntPtr.Zero)
+                        hooks[h] = hook;
+                    else
+                    {
+                        IntPtr pseudoKey = new IntPtr(~(int)hwnd);
+                        hooks[pseudoKey] = hook;
+                    }
+                }
+                return;
+            }
+
             uint pos = (uint)Math.Max(0, count - OffsetFromBottom);
 
             var itemTop = new MENUITEMINFO(0x0001 | 0x0002 | 0x0040 | 0x0100)
@@ -296,7 +353,6 @@ namespace AlwaysOnTopper
             try { insertedTop = InsertMenuItem(sysMenu, pos, true, itemTop); } catch { insertedTop = false; }
             try { insertedTrans = InsertMenuItem(sysMenu, pos + 1, true, itemTrans); } catch { insertedTrans = false; }
 
-            int foundTop = -1, foundTrans = -1;
             int newCount = GetMenuItemCount(sysMenu);
             if (newCount >= 0)
             {
@@ -320,7 +376,7 @@ namespace AlwaysOnTopper
                 }
             }
 
-            HookInfo hook = null;
+            HookInfo hookInfo = null;
             lock (hooksLock)
             {
                 WinEventDelegate perHookDel = (h, e, hw, o, c, t, tm) => WinEventInvoked(h, e, hw, o, c, t, tm);
@@ -328,7 +384,7 @@ namespace AlwaysOnTopper
 
                 if (h != IntPtr.Zero)
                 {
-                    hook = new HookInfo
+                    hookInfo = new HookInfo
                     {
                         Callback = perHookDel,
                         TargetHwnd = hwnd,
@@ -337,11 +393,11 @@ namespace AlwaysOnTopper
                         IndexTrans = foundTrans,
                         MenuInserted = (foundTop >= 0 || foundTrans >= 0)
                     };
-                    hooks[h] = hook;
+                    hooks[h] = hookInfo;
                 }
                 else
                 {
-                    hook = new HookInfo
+                    hookInfo = new HookInfo
                     {
                         Callback = null,
                         TargetHwnd = hwnd,
@@ -351,7 +407,7 @@ namespace AlwaysOnTopper
                         MenuInserted = (foundTop >= 0 || foundTrans >= 0)
                     };
                     IntPtr pseudoKey = new IntPtr(~(int)hwnd);
-                    hooks[pseudoKey] = hook;
+                    hooks[pseudoKey] = hookInfo;
                 }
             }
         }
